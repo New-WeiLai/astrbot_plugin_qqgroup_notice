@@ -1,24 +1,62 @@
 from astrbot.api.event import filter, AstrMessageEvent, MessageEventResult
 from astrbot.api.star import Context, Star, register
 from astrbot.api import logger
+import json
 
-@register("helloworld", "YourName", "一个简单的 Hello World 插件", "1.0.0")
-class MyPlugin(Star):
+@register("astrbot_plugin_group_notice", "陌筏", "群成员入群/退群通知插件（仅napcat）", "1.0.0", "https://github.com/new-weilai/astrbot_qqgroup_notice")
+class GroupNoticePlugin(Star):
     def __init__(self, context: Context):
         super().__init__(context)
+        logger.info("群通知插件已加载")
 
-    async def initialize(self):
-        """可选择实现异步的插件初始化方法，当实例化该插件类之后会自动调用该方法。"""
-
-    # 注册指令的装饰器。指令名为 helloworld。注册成功后，发送 `/helloworld` 就会触发这个指令，并回复 `你好, {user_name}!`
-    @filter.command("helloworld")
-    async def helloworld(self, event: AstrMessageEvent):
-        """这是一个 hello world 指令""" # 这是 handler 的描述，将会被解析方便用户了解插件内容。建议填写。
-        user_name = event.get_sender_name()
-        message_str = event.message_str # 用户发的纯文本消息字符串
-        message_chain = event.get_messages() # 用户所发的消息的消息链 # from astrbot.api.message_components import *
-        logger.info(message_chain)
-        yield event.plain_result(f"Hello, {user_name}, 你发了 {message_str}!") # 发送一条纯文本消息
+    @filter.event_message_type(EventMessageType.ALL)
+    async def on_group_member_change(self, event: AstrMessageEvent):
+        """监听群成员变动（入群/退群）"""
+        raw_msg = event.message_obj.raw_message
+        
+        # 尝试解析 JSON（NapCat/OneBot 的事件数据）
+        try:
+            data = json.loads(raw_msg) if isinstance(raw_msg, str) else raw_msg
+        except:
+            return  # 不是 JSON 格式的消息，忽略
+        
+        # 只处理 notice 类型事件
+        if data.get('post_type') != 'notice':
+            return
+        
+        notice_type = data.get('notice_type')
+        group_id = data.get('group_id')
+        user_id = data.get('user_id')
+        
+        # ===== 处理退群事件 =====
+        if notice_type == 'group_decrease':
+            operator_id = data.get('operator_id')
+            sub_type = data.get('sub_type')
+            
+            if sub_type == 'leave':
+                reason = "主动退群"
+            elif sub_type == 'kick':
+                reason = f"被管理员 {operator_id} 踢出"
+            else:
+                reason = "由于未知原因退出"
+            
+            yield event.plain_result(f"👋 成员 {user_id} 已{reason}")
+            logger.info(f"群 {group_id} 成员 {user_id} 退群，原因: {reason}")
+        
+        # ===== 处理入群事件 =====
+        elif notice_type == 'group_increase':
+            sub_type = data.get('sub_type')
+            
+            if sub_type == 'approve':
+                way = "通过邀请或申请入群"
+            elif sub_type == 'invite':
+                inviter_id = data.get('operator_id')
+                way = f"被 {inviter_id} 邀请入群"
+            else:
+                way = "主动入群"
+            
+            yield event.plain_result(f"🎉 欢迎新成员 {user_id}！({way})")
+            logger.info(f"群 {group_id} 有新成员 {user_id} 加入，方式: {way}")
 
     async def terminate(self):
-        """可选择实现异步的插件销毁方法，当插件被卸载/停用时会调用。"""
+        logger.info("群通知插件已卸载")
