@@ -9,7 +9,6 @@ from typing import Optional
 class GroupNoticePlugin(Star):
     def __init__(self, context: Context):
         super().__init__(context)
-        # 读取 WebUI 配置
         self.config = context.get_config() or {}
         logger.info("群通知插件已加载，配置：%s", self.config)
 
@@ -39,14 +38,26 @@ class GroupNoticePlugin(Star):
             kwargs["nickname"] = kwargs.get("user_id", "未知")
         return template.format(**kwargs)
 
-    @filter.event_message_type(EventMessageType.ALL)
-    async def on_group_member_change(self, event: AstrMessageEvent):
-        raw_msg = event.message_obj.raw_message
-        try:
-            data = json.loads(raw_msg) if isinstance(raw_msg, str) else raw_msg
-        except:
+    @filter.event_message_type("all")   # 监听所有事件（包括通知）
+    async def on_all_events(self, event: AstrMessageEvent):
+        raw = event.message_obj.raw_message
+
+        # ---------- 安全解析为字典 ----------
+        if isinstance(raw, str):
+            try:
+                data = json.loads(raw)
+            except json.JSONDecodeError:
+                return
+        elif isinstance(raw, dict):
+            data = raw
+        else:
             return
 
+        # 如果不是字典，直接退出
+        if not isinstance(data, dict):
+            return
+
+        # 只处理通知事件
         if data.get('post_type') != 'notice':
             return
 
@@ -60,14 +71,14 @@ class GroupNoticePlugin(Star):
         welcome_tpl = self.config.get("welcome_message", "🎉 欢迎新成员 {nickname}！({way})")
         leave_tpl = self.config.get("leave_message", "👋 成员 {nickname} 已{reason}")
 
-        # 入群处理
+        # ---------- 入群处理 ----------
         if notice_type == 'group_increase':
             sub_type = data.get('sub_type')
-            inviter_id = data.get('operator_id')
+            operator_id = data.get('operator_id')
             if sub_type == 'approve':
                 way = "通过邀请或申请入群"
             elif sub_type == 'invite':
-                way = f"被 {inviter_id or '未知'} 邀请入群"
+                way = f"被 {operator_id or '未知'} 邀请入群"
             else:
                 way = "主动入群"
 
@@ -78,12 +89,12 @@ class GroupNoticePlugin(Star):
                 nickname=nickname or str(user_id),
                 group_id=group_id,
                 way=way,
-                inviter_id=inviter_id
+                inviter_id=operator_id
             )
             yield event.plain_result(msg)
             logger.info(f"群 {group_id} 新成员 {user_id} 入群，方式: {way}")
 
-        # 退群处理
+        # ---------- 退群处理 ----------
         elif notice_type == 'group_decrease':
             operator_id = data.get('operator_id')
             sub_type = data.get('sub_type')
