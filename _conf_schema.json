@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "enable_nickname": {
+      "type": "boolean",
+      "title": "显示用户昵称",
+      "description": "开启后，通知中会显示用户昵称（需 NapCat HTTP 服务正常运行）",
+      "default": false
+    },
+    "welcome_message": {
+      "type": "string",
+      "title": "入群欢迎模板",
+      "description": "可用变量：{user_id}、{nickname}、{group_id}、{way}、{inviter_id}",
+      "default": "🎉 欢迎新成员 {nickname}！({way})"
+    },
+    "leave_message": {
+      "type": "string",
+      "title": "退群通知模板",
+      "description": "可用变量：{user_id}、{nickname}、{group_id}、{reason}、{operator_id}",
+      "default": "👋 成员 {nickname} 已{reason}"
+    },
+    "napcat_http_host": {
+      "type": "string",
+      "title": "NapCat HTTP 服务地址",
+      "description": "用于获取用户昵称，默认为 127.0.0.1",
+      "default": "127.0.0.1"
+    },
+    "napcat_http_port": {
+      "type": "integer",
+      "title": "NapCat HTTP 服务端口",
+      "description": "默认为 3000",
+      "default": 3000,
+      "minimum": 1,
+      "maximum": 65535
+    }
+  }
+}
