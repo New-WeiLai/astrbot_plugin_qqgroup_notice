@@ -1,6 +1,7 @@
 from astrbot.api.event import filter, AstrMessageEvent
 from astrbot.api.star import Context, Star, register
 from astrbot.api import logger
+from astrbot.core.star.filter.event_message_type import EventMessageType  # 导入枚举
 import json
 import requests
 from typing import Optional
@@ -13,7 +14,6 @@ class GroupNoticePlugin(Star):
         logger.info("群通知插件已加载，配置：%s", self.config)
 
     def get_nickname(self, user_id: int) -> Optional[str]:
-        """通过 NapCat HTTP API 获取用户昵称"""
         if not self.config.get("enable_nickname", False):
             return None
         host = self.config.get("napcat_http_host", "127.0.0.1")
@@ -33,12 +33,11 @@ class GroupNoticePlugin(Star):
         return str(user_id)
 
     def format_message(self, template: str, **kwargs) -> str:
-        """替换模板变量，若未开启昵称则强制使用 user_id"""
         if not self.config.get("enable_nickname", False):
             kwargs["nickname"] = kwargs.get("user_id", "未知")
         return template.format(**kwargs)
 
-    @filter.event_message_type("all")   # 监听所有事件（包括通知）
+    @filter.event_message_type(EventMessageType.ALL)  # 使用枚举，而非字符串
     async def on_all_events(self, event: AstrMessageEvent):
         raw = event.message_obj.raw_message
 
@@ -53,7 +52,6 @@ class GroupNoticePlugin(Star):
         else:
             return
 
-        # 如果不是字典，直接退出
         if not isinstance(data, dict):
             return
 
@@ -67,7 +65,6 @@ class GroupNoticePlugin(Star):
         if not user_id:
             return
 
-        # 获取模板
         welcome_tpl = self.config.get("welcome_message", "🎉 欢迎新成员 {nickname}！({way})")
         leave_tpl = self.config.get("leave_message", "👋 成员 {nickname} 已{reason}")
 
