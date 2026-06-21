@@ -1,6 +1,19 @@
-name: helloworld # 插件唯一识别名，以 astrbot_plugin_ 前缀开头
-display_name: helloworld # 用于展示的名字，可以是方便人类阅读的名字（需要版本 >= v4.5.0，低版本不会报错，请放心填写）
-desc: AstrBot 插件示例。 # 插件简短描述
-version: v1.3.0 # 插件版本号。格式：v1.1.1 或者 v1.1
-author: Soulter # 作者
-repo: https://github.com/Soulter/helloworld # 插件的仓库地址
+# 插件唯一标识符 (必填)[reference:9]
+name: "astrbot_plugin_qqgroup_notice"
+# 插件作者 (必填)[reference:10]
+author: "陌筏" 
+# 插件简介 (必填)[reference:11]
+desc: "QQ群成员入群/退群通知插件"
+# 插件版本 (必填)[reference:12]
+version: "1.0.0"
+# 插件仓库地址 (可选)[reference:13]
+repo: "https://github.com/New-WeiLai/astrbot_plugin_qqgroup_notice"
+# 插件展示名 (可选)[reference:14]
+display_name: "QQ群通知插件"
+# 插件市场卡片短描述 (可选)[reference:15]
+short_desc: "自动通知Q群成员入群和退群"
+# 声明支持的AstrBot版本范围 (可选)[reference:16]
+astrbot_version: ">=4.0.0"
+# 声明支持的平台适配器 (可选)[reference:17]
+support_platforms:
+  - aiocqhttp
